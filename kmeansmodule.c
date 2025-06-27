@@ -1,7 +1,8 @@
+# define PY_SSIZE_T_CLEAN
+# include <Python.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
 #define eps 0.001
 
 typedef struct
@@ -316,7 +317,7 @@ void freeMemory(cluster *cluster_array, all_vecs *all_vectors, int K, int N)
     free(cluster_array);
 }
 
-int main(int argc, char **argv)
+static PyObject* fit(PyObject* self, PyObject* args)
 {
     int K;
     double K_f;
@@ -362,3 +363,76 @@ int main(int argc, char **argv)
     freeMemory(cluster_array, &all_vectors, K, N);
     return (0);
 }
+
+static PyMethodDef kmeansMethods[] = {
+    {"fit",
+     (PyCFunction) fit,
+     METH_VARARGS,
+     PyDoc_STR("run kmeans on centroids")},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef kmeansmodule = {
+    PyModuleDef_HEAD_INIT,
+    "kmeansmodule",
+    NULL,
+    -1,
+    kmeansMethods
+};
+
+PyMODINIT_FUNC PyInit_kmeansmodule(void)
+{
+    PyObject *m;
+    m = PyModule_Create(&kmeansmodule);
+    if (!m) {
+        return NULL;
+    }
+    return m;
+}
+
+/* int main(int argc, char **argv)
+{
+    int K;
+    double K_f;
+    int iter = 400;
+    double iter_f = 400;
+    all_vecs all_vectors;
+    cluster *cluster_array;
+    int N;
+    int iter_verification = 1;
+
+    if (argc > 3)
+    {
+        errorHandling();
+        return(1);
+    }
+
+    all_vectors = getInput();
+    N = all_vectors.num_vectors;
+    K = atoi(argv[1]);
+    K_f = atof(argv[1]);
+    if (K != K_f || !(K > 1 && K < N) || checkArg(argv[1])==0)
+    {
+        printf("Incorrect number of clusters!\n");
+        return (1);
+    }
+
+    if (argc == 3)
+    {
+        iter = atoi(argv[2]);
+        iter_f = atof(argv[2]);
+        iter_verification=checkArg(argv[2]);
+    }
+
+
+    if (iter != iter_f || !(iter > 1 && iter < 1000) || iter_verification==0)
+    {
+        printf("Incorrect maximum iteration!\n");
+        return (1);
+    }
+    cluster_array = initiateClusters(&all_vectors, K);
+    cluster_array = iterateAlgorithm(cluster_array, &all_vectors, K, N, iter);
+    printOutput(cluster_array, K);
+    freeMemory(cluster_array, &all_vectors, K, N);
+    return (0);
+} */
