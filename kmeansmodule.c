@@ -371,9 +371,20 @@ static PyObject* fit(PyObject* self, PyObject* args)
             return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
         }
         for (int j = 0; j < dim; j++) { // עמודה-עמודה
-            all_vectors.all_vectors[i].coordinates[j] = points_data[i * dim + j]; // בוקטור האיי בקורדינטה הג׳יי נשים את הדאבל מספר שורה*מימד + עמודה במערך דאבלים
+            all_vectors.all_vectors[i].coordinates[j] = points_data[i+j*N]; // בוקטור האיי בקורדינטה הג׳יי נשים את הדאבל מספר שורה*מימד + עמודה במערך דאבלים
         }
     }
+
+    // printf("All Vectors:\n");
+    // for (int i = 0; i < all_vectors.num_vectors; i++) {
+    //     // printf("Vector %d: ", i);
+    //     // for (int j = 0; j < all_vectors->all_vectors[i].dimension; j++) {
+    //     //     printf("%.4f ", all_vectors->all_vectors[i].coordinates[j]);
+    //     // }
+    //     printVector(&all_vectors.all_vectors[i]);
+    //     printf("\n");
+    // }
+
 
     // טיפול בצנטרואידים
     all_centroids.num_vectors = K; // איתחול של המס׳ של הצנטרואידים בעצם שמייצג אותם
