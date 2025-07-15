@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>
 
 typedef struct
 {
@@ -70,7 +72,7 @@ void printVector(vector *vec)
     printf("\n");
 }
 
-int checkConvergence(vector *v1, vector *v2, eps)
+int checkConvergence(vector *v1, vector *v2, double eps)
 {
     return distance(v1, v2) < eps;
 }
@@ -337,9 +339,20 @@ static PyObject* fit(PyObject* self, PyObject* args)
         return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
     }
 
+    // PyObject_Print(centroids,stdout,0);
+    // PyObject_Print(points,stdout,0);
+    // printf("%d", iter);
+    // printf("\n");
+    // printf("%f", eps);
+
+
     int K = PyArray_DIM((PyArrayObject*)centroids, 0); // כמה שורות יש במערך של הצנטרואידים = כמה צנטרודים/קלאסטרים יש = K
     int dim = PyArray_DIM((PyArrayObject*)centroids, 1); // כמה עמודות יש במערך של הצנטרואידים = מימד = dim
     int N = PyArray_DIM((PyArrayObject*)points, 0); // כמה נקודות יש בסה״כ = N
+
+    // printf("%d\n", K);
+    // printf("%d\n", dim);
+    // printf("%d\n", N);
 
     // טיפול בנקודות
     all_vectors.num_vectors = N; // איתחול המס׳ של הווקטורים/נקודות בעצם שמייצג אותם
@@ -373,7 +386,7 @@ static PyObject* fit(PyObject* self, PyObject* args)
     double *centroids_data = (double *)PyArray_DATA((PyArrayObject*)centroids); // שם את הצנטרואידים אחד אחרי השני במערך של דאבלים
     for (int i = 0; i < K; i++){ // שורה-שורה
         all_centroids.all_vectors[i].dimension = dim; // נקבע את המימד של הצנטרואיד האיי להיות דים
-        all_centroids.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim); מקצים מקום לדים דאבלים שיהיו הקורדינטות של הצנטרואיד האיי
+        all_centroids.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim); // מקצים מקום לדים דאבלים שיהיו הקורדינטות של הצנטרואיד האיי
         if (all_centroids.all_vectors[i].coordinates == NULL) { // אם ההקצאה נכשלה
             errorHandling(); // תדפיס שגיאה
             return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
@@ -414,13 +427,13 @@ static PyMethodDef kmeansMethods[] = {
 
 static struct PyModuleDef kmeansmodule = {
     PyModuleDef_HEAD_INIT,
-    "kmeansmodule",
+    "mykmeanssp",
     NULL,
     -1,
     kmeansMethods
 };
 
-PyMODINIT_FUNC PyInit_kmeansmodule(void)
+PyMODINIT_FUNC PyInit_mykmeanssp(void)
 {
     PyObject *m;
     m = PyModule_Create(&kmeansmodule);

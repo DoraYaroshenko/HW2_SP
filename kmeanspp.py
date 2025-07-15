@@ -105,7 +105,7 @@ def initCentroids(vectors,points_array,K):
 
         
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     K,iter,eps,file_name_1,file_name_2 = getInputVariables()
     vectors = getObservations(file_name_1,file_name_2)
     # print(vectors)
@@ -113,5 +113,8 @@ if _name_ == "_main_":
     checkInput(K,iter,eps,N)
     points_array=vectors.to_numpy()
     centroids,centroids_indexes = initCentroids(vectors,points_array, K)
+    # print(points_array)
     print(",".join(str(int(v)) for v in centroids_indexes))
     final_centroids = mykmeanssp.fit(centroids, points_array, iter, eps)
+    for centroid in final_centroids:
+        print(",".join('{:.4f}'.format(coordinate) for coordinate in centroid))
