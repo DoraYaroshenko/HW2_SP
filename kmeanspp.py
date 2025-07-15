@@ -16,8 +16,8 @@ def checkInput(K,iter,eps,N):
         print("Incorrect number of clusters!")
         sys.exit(1)
     if(iter>=1000 or iter<=1):
-            print("Incorrect maximum iteration!")
-            sys.exit(1)
+        print("Incorrect maximum iteration!")
+        sys.exit(1)
     if(eps<0):
         print("Invalid epsilon!")
         sys.exit(1)
@@ -109,5 +109,8 @@ if __name__ == "__main__":
     print(",".join(str(int(v)) for v in centroids_indexes))
     centroids = centroids.tolist()
     final_centroids = mykmeanssp.fit(centroids, points_array, iter, eps)
+    if final_centroids is None:
+        print("An Error has Occured")
+        sys.exit(1)
     for centroid in final_centroids:
         print(",".join('{:.4f}'.format(coordinate) for coordinate in centroid))

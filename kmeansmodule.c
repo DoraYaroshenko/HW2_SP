@@ -33,8 +33,6 @@ vector *mulByScalar(vector *v, double scalar);
 void emptyCluster(cluster *clus);
 cluster *initiateClusters(all_vecs *all_vectors, int num_of_clusters);
 cluster *iterateAlgorithm(cluster *cluster_array, all_vecs *all_vectors, int K, int N, int iters, double eps);
-//all_vecs getInput();
-void errorHandling();
 void printOutput(cluster *clus, int K);
 void freeMemory(cluster *clus, all_vecs *all_vectors, all_vecs *all_centroids, int K, int N);
 void printVector(vector *vec);
@@ -79,10 +77,6 @@ void assignVectorToCluster(vector *v, cluster *clus)
 {
     clus->members = (vector *)realloc(clus->members, ((clus->num_of_members) + 1) * sizeof(vector));
     clus->num_of_members++;
-    if (clus->members == NULL)
-    {
-        errorHandling();
-    }
     clus->members[clus->num_of_members - 1] = *v;
 }
 
@@ -119,7 +113,7 @@ vector *sumVectors(vector *vectors, int num_of_vecs)
     sum_vec->coordinates = (double *)calloc(sum_vec->dimension, sizeof(double));
     if (sum_vec == NULL)
     {
-        errorHandling();
+        return NULL;
     }
     for (i = 0; i < sum_vec->dimension; i++)
     {
@@ -140,7 +134,7 @@ vector *mulByScalar(vector *v, double scalar)
     mul_vec->coordinates = (double *)calloc(v->dimension, sizeof(double));
     if (mul_vec == NULL)
     {
-        errorHandling();
+        return NULL;
     }
     for (i = 0; i < mul_vec->dimension; i++)
     {
@@ -162,20 +156,29 @@ cluster *initiateClusters(all_vecs *all_vectors, int K)
     cluster *cluster_array = (cluster *)malloc(K * sizeof(cluster));
     if (cluster_array == NULL)
     {
-        errorHandling();
+        return NULL;
     }
     for (i = 0; i < K; i++)
     {
         int j;
         cluster_array[i].centroid = (vector *)malloc(sizeof(vector));
+        if(cluster_array[i].centroid==NULL){
+            return NULL;
+        }
         cluster_array[i].centroid->dimension = all_vectors->all_vectors[i].dimension;
         cluster_array[i].centroid->coordinates = (double *)malloc(sizeof(double) * cluster_array[i].centroid->dimension);
+        if(cluster_array[i].centroid->coordinates==NULL){
+            return NULL;
+        }
         for (j = 0; j < cluster_array[i].centroid->dimension; j++)
         {
             cluster_array[i].centroid->coordinates[j] = all_vectors->all_vectors[i].coordinates[j];
         }
         cluster_array[i].num_of_members = 0;
         cluster_array[i].members = (vector *)malloc(sizeof(vector));
+        if(cluster_array[i].members==NULL){
+            return NULL;
+        }
     }
     return cluster_array;
 }
@@ -205,9 +208,15 @@ cluster *iterateAlgorithm(cluster *cluster_array, all_vecs *all_vectors, int K, 
         for (j = 0; j < K; j++)
         {
             vector *old_centroid_copy = (vector *)malloc(sizeof(vector));
+            if(old_centroid_copy==NULL){
+                return NULL;
+            }
             int l;
             old_centroid_copy->dimension = cluster_array[j].centroid->dimension;
             old_centroid_copy->coordinates = (double *)malloc(sizeof(double) * old_centroid_copy->dimension);
+            if(old_centroid_copy->coordinates==NULL){
+                return NULL;
+            }
             for (l = 0; l < old_centroid_copy->dimension; l++)
             {
                 old_centroid_copy->coordinates[l] = cluster_array[j].centroid->coordinates[l];
@@ -222,11 +231,6 @@ cluster *iterateAlgorithm(cluster *cluster_array, all_vecs *all_vectors, int K, 
             break;
     }
     return cluster_array;
-}
-
-void errorHandling()
-{
-    printf("An Error Has Occured\n");
 }
 
 void printOutput(cluster *clus, int K)
@@ -270,25 +274,21 @@ static PyObject* fit(PyObject* self, PyObject* args)
     cluster *cluster_array;
 
     if (!PyArg_ParseTuple(args, "OOid", &centroids, &points, &iter, &eps)) {
-        errorHandling();
         return NULL;
     }
 
     if (!PyList_Check(centroids) || !PyList_Check(points)) {
-        errorHandling();
         return NULL;
     }
 
     int K = PyList_Size(centroids);
     int N = PyList_Size(points);
     if (N == 0 || K == 0) {
-        errorHandling();
         return NULL;
     }
 
     PyObject *first_point = PyList_GetItem(points, 0);
     if (!PyList_Check(first_point)) {
-        errorHandling();
         return NULL;
     }
 
@@ -297,28 +297,24 @@ static PyObject* fit(PyObject* self, PyObject* args)
     all_vectors.num_vectors = N;
     all_vectors.all_vectors = (vector *)malloc(sizeof(vector) * N);
     if (all_vectors.all_vectors == NULL) {
-        errorHandling();
         return NULL;
     }
 
     for (int i = 0; i < N; i++) {
         PyObject *point = PyList_GetItem(points, i);
         if (!PyList_Check(point) || PyList_Size(point) != dim) {
-            errorHandling();
             return NULL;
         }
 
         all_vectors.all_vectors[i].dimension = dim;
         all_vectors.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim);
         if (all_vectors.all_vectors[i].coordinates == NULL) {
-            errorHandling();
             return NULL;
         }
 
         for (int j = 0; j < dim; j++) {
             PyObject *coord = PyList_GetItem(point, j);
             if (!PyFloat_Check(coord)) {
-                errorHandling();
                 return NULL;
             }
             all_vectors.all_vectors[i].coordinates[j] = PyFloat_AsDouble(coord);
@@ -328,28 +324,24 @@ static PyObject* fit(PyObject* self, PyObject* args)
     all_centroids.num_vectors = K;
     all_centroids.all_vectors = (vector *)malloc(sizeof(vector) * K);
     if (all_centroids.all_vectors == NULL) {
-        errorHandling();
         return NULL;
     }
 
     for (int i = 0; i < K; i++) {
         PyObject *centroid = PyList_GetItem(centroids, i);
         if (!PyList_Check(centroid) || PyList_Size(centroid) != dim) {
-            errorHandling();
             return NULL;
         }
 
         all_centroids.all_vectors[i].dimension = dim;
         all_centroids.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim);
         if (all_centroids.all_vectors[i].coordinates == NULL) {
-            errorHandling();
             return NULL;
         }
 
         for (int j = 0; j < dim; j++) {
             PyObject *coord = PyList_GetItem(centroid, j);
             if (!PyFloat_Check(coord)) {
-                errorHandling();
                 return NULL;
             }
             all_centroids.all_vectors[i].coordinates[j] = PyFloat_AsDouble(coord);
@@ -357,7 +349,13 @@ static PyObject* fit(PyObject* self, PyObject* args)
     }
 
     cluster_array = initiateClusters(&all_centroids, K);
+    if(cluster_array==NULL){
+        return NULL;
+    }
     cluster_array = iterateAlgorithm(cluster_array, &all_vectors, K, N, iter, eps);
+        if(cluster_array==NULL){
+        return NULL;
+    }
 
     PyObject *result = PyList_New(K);
     for (int i = 0; i < K; i++) {
