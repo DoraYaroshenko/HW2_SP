@@ -67,15 +67,12 @@ def getObservations(file_name_1,file_name_2):
     columns_names[0] = "key"
     vectors1_df.columns=columns_names
     vectors2_df.columns=columns_names
-    vectors = vectors1_df.merge(vectors2_df,how='left', on='key')
+    vectors = vectors1_df.merge(vectors2_df,how='inner', on='key')
     vectors = vectors.set_index('key')
     vectors.sort_values(by='key', ascending=True, inplace=True)
     columns_names = [f"coordinate {i}" for i in range(len(vectors.columns))]
     vectors.columns=columns_names
     return vectors
-
-# def dist_from_nearest(point, centroids):
-
 
 def initCentroids(vectors,points_array,K):
     points = np.copy(points_array)
@@ -87,12 +84,9 @@ def initCentroids(vectors,points_array,K):
     centroids[0]=centroid
     centroids_indexes.append(vectors.index[index_chosen])
     points = np.delete(points,index_chosen,axis=0)
-    # print(points)
     for i in range(1,K):
         distances = []
         for p in points:
-            # print(p)
-            # print(centroids)
             point_distances = [euclidian_distance(centroid,p) for centroid in centroids[:i]]
             dist = min(point_distances)
             distances.append(dist)
@@ -108,13 +102,12 @@ def initCentroids(vectors,points_array,K):
 if __name__ == "__main__":
     K,iter,eps,file_name_1,file_name_2 = getInputVariables()
     vectors = getObservations(file_name_1,file_name_2)
-    # print(vectors)
     N = len(vectors)
     checkInput(K,iter,eps,N)
-    points_array=vectors.to_numpy()
+    points_array=vectors.to_numpy().tolist()
     centroids,centroids_indexes = initCentroids(vectors,points_array, K)
-    # print(points_array)
     print(",".join(str(int(v)) for v in centroids_indexes))
+    centroids = centroids.tolist()
     final_centroids = mykmeanssp.fit(centroids, points_array, iter, eps)
     for centroid in final_centroids:
         print(",".join('{:.4f}'.format(coordinate) for coordinate in centroid))

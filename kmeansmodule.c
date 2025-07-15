@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
 
 typedef struct
 {
@@ -226,69 +224,6 @@ cluster *iterateAlgorithm(cluster *cluster_array, all_vecs *all_vectors, int K, 
     return cluster_array;
 }
 
-/*
-all_vecs getInput()
-{
-    double n;
-    char c;
-    int i = 0, j = 0;
-    all_vecs all_vectors;
-    vector curr_vector;
-    curr_vector.dimension = 0;
-    curr_vector.coordinates = (double *)malloc(sizeof(double));
-    if (curr_vector.coordinates == NULL)
-    {
-        errorHandling();
-    }
-    all_vectors.all_vectors = (vector *)malloc(sizeof(vector));
-    if (all_vectors.all_vectors == NULL)
-    {
-        errorHandling();
-    }
-    while (scanf("%lf%c", &n, &c) == 2)
-    {
-        if (c == '\n')
-        {
-            vector new_vector;
-            curr_vector.coordinates[j] = n;
-            j++;
-            if (i == 0)
-                curr_vector.dimension++;
-            all_vectors.all_vectors[i] = curr_vector;
-            i++;
-            all_vectors.all_vectors = (vector *)realloc(all_vectors.all_vectors, sizeof(vector) * (i + 1));
-            if (all_vectors.all_vectors == NULL)
-            {
-                errorHandling();
-            }
-            new_vector.dimension = j;
-            new_vector.coordinates = (double *)malloc(sizeof(double) * new_vector.dimension);
-            if (new_vector.coordinates == NULL)
-            {
-                errorHandling();
-            }
-            curr_vector = new_vector;
-            j = 0;
-            continue;
-        }
-        curr_vector.coordinates[j] = n;
-        j++;
-        if (i == 0)
-        {
-            curr_vector.dimension++;
-            curr_vector.coordinates = (double *)realloc(curr_vector.coordinates, sizeof(double) * (j + 1));
-            if (curr_vector.coordinates == NULL)
-            {
-                errorHandling();
-            }
-        }
-    }
-    free(curr_vector.coordinates);
-    all_vectors.num_vectors = i;
-    return all_vectors;
-}
-*/
-
 void errorHandling()
 {
     printf("An Error Has Occured\n");
@@ -326,105 +261,118 @@ void freeMemory(cluster *cluster_array, all_vecs *all_vectors, all_vecs *all_cen
 
 static PyObject* fit(PyObject* self, PyObject* args)
 {
-    PyObject *centroids; // צנטרואידים
-    PyObject *points; // כלל הנקודות
-    int iter; // מס׳ איטרציות
-    double eps; // אפסילון
-    all_vecs all_vectors; // רשימה של וקטורים - כל הנקודות - יש מצביע לרשימה של הטיפוס vector ויש אינט של כמה יש ברשימה
-    all_vecs all_centroids; // רשימה של וקטורים - כל הצנטרואידים - יש מצביע לרשימה של הטיפוס vector ויש אינט של כמה יש ברשימה
-    cluster *cluster_array; // מערך של קלאסטרים שלכל אחד מצביע לצנטרואיד ומצביע לרשימת נקודות של הצנטרואיד
+    PyObject *centroids;
+    PyObject *points;
+    int iter;
+    double eps;
+    all_vecs all_vectors;
+    all_vecs all_centroids;
+    cluster *cluster_array;
 
-    if (!PyArg_ParseTuple(args, "OOid", &centroids, &points, &iter, &eps)) { // שם את המערכים בתוך פייאובג׳ט ואת המספרים לפי טיפוסם
-        errorHandling(); // תדפיס שגיאה אם ההקצאה נכשלה
-        return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
+    if (!PyArg_ParseTuple(args, "OOid", &centroids, &points, &iter, &eps)) {
+        errorHandling();
+        return NULL;
     }
 
-    // PyObject_Print(centroids,stdout,0);
-    // PyObject_Print(points,stdout,0);
-    // printf("%d", iter);
-    // printf("\n");
-    // printf("%f", eps);
-
-
-    int K = PyArray_DIM((PyArrayObject*)centroids, 0); // כמה שורות יש במערך של הצנטרואידים = כמה צנטרודים/קלאסטרים יש = K
-    int dim = PyArray_DIM((PyArrayObject*)centroids, 1); // כמה עמודות יש במערך של הצנטרואידים = מימד = dim
-    int N = PyArray_DIM((PyArrayObject*)points, 0); // כמה נקודות יש בסה״כ = N
-
-    // printf("%d\n", K);
-    // printf("%d\n", dim);
-    // printf("%d\n", N);
-
-    // טיפול בנקודות
-    all_vectors.num_vectors = N; // איתחול המס׳ של הווקטורים/נקודות בעצם שמייצג אותם
-    all_vectors.all_vectors = (vector *)malloc(sizeof(vector) * N); // מקצים מקום ל-N וקטורים שזה בעצם נקודות
-    if (all_vectors.all_vectors == NULL) { // אם ההקצאה נכשלה
-        errorHandling(); // תדפיס שגיאה
-        return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
+    if (!PyList_Check(centroids) || !PyList_Check(points)) {
+        errorHandling();
+        return NULL;
     }
 
-    double *points_data = (double *)PyArray_DATA((PyArrayObject*)points); // שם את הנקודות אחת אחרי השניה במערך של דאבלים
-    for (int i = 0; i < N; i++) { // שורה-שורה
-        all_vectors.all_vectors[i].dimension = dim; // המימד של הנקודה ה-i נקבע להיות דים
-        all_vectors.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim); // מקצים מקום ל-dim דאבלים שיהיו הקורדינטות של הנקודה ה-i
-        if (all_vectors.all_vectors[i].coordinates == NULL) { // אם ההקצאה נכשלה
-            errorHandling(); // תדפיס שגיאה
-            return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
+    int K = PyList_Size(centroids);
+    int N = PyList_Size(points);
+    if (N == 0 || K == 0) {
+        errorHandling();
+        return NULL;
+    }
+
+    PyObject *first_point = PyList_GetItem(points, 0);
+    if (!PyList_Check(first_point)) {
+        errorHandling();
+        return NULL;
+    }
+
+    int dim = PyList_Size(first_point);
+
+    all_vectors.num_vectors = N;
+    all_vectors.all_vectors = (vector *)malloc(sizeof(vector) * N);
+    if (all_vectors.all_vectors == NULL) {
+        errorHandling();
+        return NULL;
+    }
+
+    for (int i = 0; i < N; i++) {
+        PyObject *point = PyList_GetItem(points, i);
+        if (!PyList_Check(point) || PyList_Size(point) != dim) {
+            errorHandling();
+            return NULL;
         }
-        for (int j = 0; j < dim; j++) { // עמודה-עמודה
-            all_vectors.all_vectors[i].coordinates[j] = points_data[i+j*N]; // בוקטור האיי בקורדינטה הג׳יי נשים את הדאבל מספר שורה*מימד + עמודה במערך דאבלים
+
+        all_vectors.all_vectors[i].dimension = dim;
+        all_vectors.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim);
+        if (all_vectors.all_vectors[i].coordinates == NULL) {
+            errorHandling();
+            return NULL;
         }
-    }
 
-    // printf("All Vectors:\n");
-    // for (int i = 0; i < all_vectors.num_vectors; i++) {
-    //     // printf("Vector %d: ", i);
-    //     // for (int j = 0; j < all_vectors->all_vectors[i].dimension; j++) {
-    //     //     printf("%.4f ", all_vectors->all_vectors[i].coordinates[j]);
-    //     // }
-    //     printVector(&all_vectors.all_vectors[i]);
-    //     printf("\n");
-    // }
-
-
-    // טיפול בצנטרואידים
-    all_centroids.num_vectors = K; // איתחול של המס׳ של הצנטרואידים בעצם שמייצג אותם
-    all_centroids.all_vectors = (vector *)malloc(sizeof(vector) * K); // מקצים מקום ל-K צנטרואידים
-    if (all_centroids.all_vectors == NULL) { // אם ההקצאה נכשלת
-        errorHandling(); // תדפיס שגיאה
-        return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
-    }
-
-    double *centroids_data = (double *)PyArray_DATA((PyArrayObject*)centroids); // שם את הצנטרואידים אחד אחרי השני במערך של דאבלים
-    for (int i = 0; i < K; i++){ // שורה-שורה
-        all_centroids.all_vectors[i].dimension = dim; // נקבע את המימד של הצנטרואיד האיי להיות דים
-        all_centroids.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim); // מקצים מקום לדים דאבלים שיהיו הקורדינטות של הצנטרואיד האיי
-        if (all_centroids.all_vectors[i].coordinates == NULL) { // אם ההקצאה נכשלה
-            errorHandling(); // תדפיס שגיאה
-            return NULL; // הפייתון כבר יצא עם אקסיט קוד 1
-        }
-        for (int j = 0; j < dim; j++) { // עמודה-עמודה
-            all_centroids.all_vectors[i].coordinates[j] = centroids_data[i * dim + j]; // בצנטרואיד האיי בקורדינטה הג׳יי נשים את הדאבל מספר שורה*מימד + עמודה במערך דאבלים
+        for (int j = 0; j < dim; j++) {
+            PyObject *coord = PyList_GetItem(point, j);
+            if (!PyFloat_Check(coord)) {
+                errorHandling();
+                return NULL;
+            }
+            all_vectors.all_vectors[i].coordinates[j] = PyFloat_AsDouble(coord);
         }
     }
 
+    all_centroids.num_vectors = K;
+    all_centroids.all_vectors = (vector *)malloc(sizeof(vector) * K);
+    if (all_centroids.all_vectors == NULL) {
+        errorHandling();
+        return NULL;
+    }
+
+    for (int i = 0; i < K; i++) {
+        PyObject *centroid = PyList_GetItem(centroids, i);
+        if (!PyList_Check(centroid) || PyList_Size(centroid) != dim) {
+            errorHandling();
+            return NULL;
+        }
+
+        all_centroids.all_vectors[i].dimension = dim;
+        all_centroids.all_vectors[i].coordinates = (double *)malloc(sizeof(double) * dim);
+        if (all_centroids.all_vectors[i].coordinates == NULL) {
+            errorHandling();
+            return NULL;
+        }
+
+        for (int j = 0; j < dim; j++) {
+            PyObject *coord = PyList_GetItem(centroid, j);
+            if (!PyFloat_Check(coord)) {
+                errorHandling();
+                return NULL;
+            }
+            all_centroids.all_vectors[i].coordinates[j] = PyFloat_AsDouble(coord);
+        }
+    }
 
     cluster_array = initiateClusters(&all_centroids, K);
     cluster_array = iterateAlgorithm(cluster_array, &all_vectors, K, N, iter, eps);
 
-
-    PyObject *result = PyList_New(K); // יוצר pylist object שזה סוג של pyobject
-    for (int i = 0; i < K; i++) { // לכל צנטרואיד
-        PyObject *cent = PyList_New(dim); // יוצר רשימה מהמימד של הצנטרואיד
-        for (int j = 0; j < dim; j++) { // לכל נקודה בצנטרואיד
-            PyList_SetItem(cent, j, PyFloat_FromDouble(cluster_array[i].centroid->coordinates[j])); // מכניסה את הקורדינטה הג׳יי של הצנטרואיד האיי למקום הג׳יי בצנטרואיד בפייתון
+    PyObject *result = PyList_New(K);
+    for (int i = 0; i < K; i++) {
+        PyObject *cent = PyList_New(dim);
+        for (int j = 0; j < dim; j++) {
+            PyList_SetItem(cent, j, PyFloat_FromDouble(cluster_array[i].centroid->coordinates[j]));
         }
-        PyList_SetItem(result, i, cent); // בתוצאה בשורה האיי אני שמה את הסנטרואיד שיצרתי
+        PyList_SetItem(result, i, cent);
     }
 
     freeMemory(cluster_array, &all_vectors, &all_centroids, K, N);
 
-    return result; // מחזיר לפייתון רשימה של רשימות
+    return result;
 }
+
 
 
 
@@ -453,50 +401,3 @@ PyMODINIT_FUNC PyInit_mykmeanssp(void)
     }
     return m;
 }
-
-/* int main(int argc, char **argv)
-{
-    int K;
-    double K_f;
-    int iter = 400;
-    double iter_f = 400;
-    all_vecs all_vectors;
-    cluster *cluster_array;
-    int N;
-    int iter_verification = 1;
-
-    if (argc > 3)
-    {
-        errorHandling();
-        return(1);
-    }
-
-    all_vectors = getInput();
-    N = all_vectors.num_vectors;
-    K = atoi(argv[1]);
-    K_f = atof(argv[1]);
-    if (K != K_f || !(K > 1 && K < N) || checkArg(argv[1])==0)
-    {
-        printf("Incorrect number of clusters!\n");
-        return (1);
-    }
-
-    if (argc == 3)
-    {
-        iter = atoi(argv[2]);
-        iter_f = atof(argv[2]);
-        iter_verification=checkArg(argv[2]);
-    }
-
-
-    if (iter != iter_f || !(iter > 1 && iter < 1000) || iter_verification==0)
-    {
-        printf("Incorrect maximum iteration!\n");
-        return (1);
-    }
-    cluster_array = initiateClusters(&all_vectors, K);
-    cluster_array = iterateAlgorithm(cluster_array, &all_vectors, K, N, iter);
-    printOutput(cluster_array, K);
-    freeMemory(cluster_array, &all_vectors, K, N);
-    return (0);
-} */
