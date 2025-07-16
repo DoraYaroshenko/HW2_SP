@@ -2,7 +2,7 @@ import math
 import sys
 import numpy as np
 import pandas as pd
-import mykmeanssp
+import mykmeanspp
 
 def euclidian_distance(v1, v2):
     sum = 0
@@ -11,20 +11,29 @@ def euclidian_distance(v1, v2):
        sum += sub ** 2
     return math.sqrt(sum)
 
-def checkInput(K,iter,eps,N):   
-    if(K <= 1 or K>=N): 
-        print("Incorrect number of clusters!")
+def checkInput(K,iter,eps):
+    if not K.is_integer():
+        print("Invalid number of clusters!")
         sys.exit(1)
+    K=int(K)   
+    if(K <= 1): 
+        print("Invalid number of clusters!")
+        sys.exit(1)
+    if iter!=300 and not iter.is_integer():
+        print("Invalid maximum iteration!")
+        sys.exit(1)
+    iter=int(iter)
     if(iter>=1000 or iter<=1):
-        print("Incorrect maximum iteration!")
+        print("Invalid maximum iteration!")
         sys.exit(1)
     if(eps<0):
         print("Invalid epsilon!")
         sys.exit(1)
+    return K,iter
 
 def getInputVariables():
     if len(sys.argv)>6 or len(sys.argv)<5:
-        print("An Error has Occured")
+        print("An Error Has Occurred")
         sys.exit(1)
     K=-1
     iter=300
@@ -33,11 +42,8 @@ def getInputVariables():
     file_name_2 = ""
     try:
         K = float(sys.argv[1])
-        if not K.is_integer():
-            raise ValueError
-        K = int(K)
     except:
-        print("Incorrect number of clusters!")
+        print("Invalid number of clusters!")
         sys.exit(1)
     iter_flag = len(sys.argv) > 5
     i=2
@@ -45,11 +51,8 @@ def getInputVariables():
         i+=1
         try:
             iter = float(sys.argv[2])
-            if not iter.is_integer():
-                raise ValueError
-            iter = int(iter)
         except:
-            print("Incorrect maximum iteration!")
+            print("Invalid maximum iteration!")
             sys.exit(1)
     try:
         eps = float(sys.argv[i])
@@ -63,10 +66,12 @@ def getInputVariables():
 def getObservations(file_name_1,file_name_2):
     vectors1_df = pd.read_csv(file_name_1,header=None)
     vectors2_df = pd.read_csv(file_name_2,header=None)
-    columns_names = [f"col {i}" for i in range(len(vectors1_df.columns))]
-    columns_names[0] = "key"
-    vectors1_df.columns=columns_names
-    vectors2_df.columns=columns_names
+    columns_names1 = [f"col {i}" for i in range(len(vectors1_df.columns))]
+    columns_names2 = [f"col {i}" for i in range(len(vectors2_df.columns))]
+    columns_names1[0] = "key"
+    columns_names2[0] = "key"
+    vectors1_df.columns=columns_names1
+    vectors2_df.columns=columns_names2
     vectors = vectors1_df.merge(vectors2_df,how='inner', on='key')
     vectors = vectors.set_index('key')
     vectors.sort_values(by='key', ascending=True, inplace=True)
@@ -101,16 +106,19 @@ def initCentroids(vectors,points_array,K):
 
 if __name__ == "__main__":
     K,iter,eps,file_name_1,file_name_2 = getInputVariables()
+    K,iter = checkInput(K,iter,eps)
     vectors = getObservations(file_name_1,file_name_2)
     N = len(vectors)
-    checkInput(K,iter,eps,N)
+    if(K >= N): 
+        print("Invalid number of clusters!")
+        sys.exit(1)
     points_array=vectors.to_numpy().tolist()
     centroids,centroids_indexes = initCentroids(vectors,points_array, K)
     print(",".join(str(int(v)) for v in centroids_indexes))
     centroids = centroids.tolist()
-    final_centroids = mykmeanssp.fit(centroids, points_array, iter, eps)
+    final_centroids = mykmeanspp.fit(centroids, points_array, iter, eps)
     if final_centroids is None:
-        print("An Error has Occured")
+        print("An Error Has Occurred")
         sys.exit(1)
     for centroid in final_centroids:
         print(",".join('{:.4f}'.format(coordinate) for coordinate in centroid))

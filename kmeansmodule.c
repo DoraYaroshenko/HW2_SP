@@ -254,6 +254,7 @@ void freeMemory(cluster *cluster_array, all_vecs *all_vectors, all_vecs *all_cen
         free(all_centroids->all_vectors[i].coordinates);
     }
     free(all_vectors->all_vectors);
+    free(all_centroids->all_vectors);
     for (i = 0; i < K; i++)
     {
         free(cluster_array[i].members);
@@ -384,13 +385,13 @@ static PyMethodDef kmeansMethods[] = {
 
 static struct PyModuleDef kmeansmodule = {
     PyModuleDef_HEAD_INIT,
-    "mykmeanssp",
+    "mykmeanspp",
     NULL,
     -1,
     kmeansMethods
 };
 
-PyMODINIT_FUNC PyInit_mykmeanssp(void)
+PyMODINIT_FUNC PyInit_mykmeanspp(void)
 {
     PyObject *m;
     m = PyModule_Create(&kmeansmodule);
